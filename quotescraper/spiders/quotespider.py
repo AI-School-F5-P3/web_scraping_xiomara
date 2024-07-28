@@ -1,7 +1,7 @@
 import scrapy
 
 from logger import logger
-from quotescraper.items import QuoteItem
+from quotescraper.items import QuoteItem, AuthorItem
 
 
 class QuotespiderSpider(scrapy.Spider):
@@ -9,7 +9,7 @@ class QuotespiderSpider(scrapy.Spider):
     allowed_domains = ["quotes.toscrape.com"]
     start_urls = ["https://quotes.toscrape.com"]
 
-    authors_urls = []
+    authors = []
 
     def parse(self, response):
         quotes = response.css("div.quote")
@@ -19,24 +19,22 @@ class QuotespiderSpider(scrapy.Spider):
             quote_item['author'] = quote.css("small.author::text").get()
             quote_item['tags'] = quote.css("div.tags a.tag::text").getall()
             author_url = quote.css(("div.quote span a::attr(href)")).get()
-            if author_url not in self.authors_urls:
-                self.authors_urls.append(author_url)
+            if author_url not in self.authors:
+                logger.info(f"New author: {quote_item['author']}")
+                self.authors.append(author_url)
+                request = response.follow(author_url, self.parse_about, cb_kwargs=dict())
+                request.cb_kwargs["author"] = quote_item['author']
+                yield request
             yield quote_item
-
+            
         next_page = response.css("li.next a::attr(href)").get()
         if next_page:
             url_next = "https://quotes.toscrape.com" + next_page
             yield response.follow(url_next, callback=self.parse)
-        # else:
-        #     self.parse_about()
 
-    # def parse_quote(self, response):
-    #     pass
-
-    # def parse_about(self, response):
-    #     for author in self.authors_urls:
-    #         url_about = self.start_urls[0] + author
-    #         yield {
-    #             "author": 
-    #         }
+    def parse_about(self, response, author):
+        author_item = AuthorItem()
+        author_item['author'] = author
+        author_item['about'] = response.css(".author-description::text").get()
+        yield author_item
 
