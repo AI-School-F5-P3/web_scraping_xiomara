@@ -50,8 +50,20 @@ def test_quote_create_get(conn):
     cursor.execute("SELECT * FROM quotes WHERE id = %s", (id_quote,))
     result = cursor.fetchone()
     assert result[1] == quote['quote']
-    assert result[2] == id_author    
+    assert result[2] == id_author
 
+def test_quote_tag_create(conn):
+    cursor = conn.cursor()
+    cursor.execute("SELECT id FROM quotes WHERE author_id='2'")
+    id_quote = cursor.fetchone()[0]
+    cursor.execute("SELECT id FROM tags WHERE name='music'")
+    id_tag = cursor.fetchone()[0]
+    db.quote_tag_create(conn, id_quote, id_tag)
+    cursor.execute("SELECT * FROM quotes_tags WHERE quote_id=%s", (id_quote,))
+    result = cursor.fetchone()
+    assert result
+    assert result[1] == id_quote
+    assert result[2] == id_tag
 
 def test_fail_quote_create_get(conn):
     pass
