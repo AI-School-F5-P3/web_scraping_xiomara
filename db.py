@@ -86,10 +86,10 @@ def author_create(conn, item: AuthorItem):
             cursor.execute("INSERT INTO authors(fullname, about) VALUES (%s, %s)",
                            (item['author'], item['about']))
             conn.commit()
+            logger.info(f"Create author: {item['author']}")
             return cursor.lastrowid
         except mysql.connector.DataError as e:
             logger.error(e)
-    return result
 
 def tag_get(conn, tag: str):
     cursor = conn.cursor()
@@ -107,4 +107,39 @@ def tag_create(conn, tag):
             return cursor.lastrowid
         except mysql.connector.DatabaseError as e:
             logger.error(e)
-    return result[0]
+
+def quote_get(conn, quote):
+    cursor = conn.cursor()
+    cursor.execute("SELECT id FROM quotes WHERE quote = %s", (quote,))
+    result = cursor.fetchone()
+    return result[0] if result else None
+
+def quote_create(conn, quote: QuoteItem):
+    id_author = author_get(conn, quote['author'])
+    if id_author is None:
+        return None
+    result = quote_get(conn, quote['quote'])
+    if result is None:
+        try:
+            cursor = conn.cursor()
+            cursor.execute("INSERT INTO quotes (quote, author_id) VALUES (%s, %s)", 
+                           (quote['quote'], id_author))
+            conn.commit()
+            logger.info("Create quote.")
+            return cursor.lastrowid
+        except mysql.connector.Error as e:
+            logger.Error(e)
+    
+def quote_tags_create(conn, id_quote, id_tag):
+    cursor = conn.cursor()
+    cursor.execute("SELECT id FROM quotes_tags WHERE quote_id=%s AND author_id=%s",
+                   (id_quote, id_tag))
+    result = cursor.fetchone()
+    exist = result[0] if result else None
+    if exist is None:
+        try:
+            cursor.execute("INSERT INTO quotes_tags VALUES (%s, %s)", (id_quote, id_tag))
+            conn.commit()
+        except mysql.connector.Error as e:
+            logger.error(e)
+    
