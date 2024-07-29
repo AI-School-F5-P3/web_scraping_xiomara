@@ -27,11 +27,11 @@ class Connection:
                 logger.info("Connection database ok.")
         return cls.conn
 
-def create_tables(conn):
+def create_tables(conn, database=os.environ['DB_DATABASE']):
     cursor = conn.cursor()
-    database = os.environ['DB_DATABASE']
+    # database = os.environ['DB_DATABASE']
     try:
-        cursor.execute(f"CREATE DATABASE IF NOT EXISTR `{database}`;")
+        cursor.execute(f"CREATE DATABASE IF NOT EXISTS `{database}`;")
         logger.info("Base de datos creada.")
         cursor.execute(f"USE `{database}`;")
         tables = [
@@ -86,20 +86,25 @@ def author_create(conn, item: AuthorItem):
             cursor.execute("INSERT INTO authors(fullname, about) VALUES (%s, %s)",
                            (item['author'], item['about']))
             conn.commit()
-            return cursor.lastrowld
+            return cursor.lastrowid
         except mysql.connector.DataError as e:
             logger.error(e)
     return result
 
-def tag_create(conn, tag):
+def tag_get(conn, tag: str):
     cursor = conn.cursor()
     cursor.execute("SELECT id FROM tags WHERE name = %s", (tag,))
     result = cursor.fetchone()
+    return result[0] if result else None
+
+def tag_create(conn, tag):
+    result = tag_get(conn, tag)
     if result is None:
         try:
+            cursor = conn.cursor()
             cursor.execute("INSERT INTO tags (name) VALUES (%s)", (tag,))
             conn.commit()
-            return cursor.lastrowld
+            return cursor.lastrowid
         except mysql.connector.DatabaseError as e:
             logger.error(e)
     return result[0]
