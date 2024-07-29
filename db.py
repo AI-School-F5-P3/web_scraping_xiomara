@@ -130,16 +130,18 @@ def quote_create(conn, quote: QuoteItem):
         except mysql.connector.Error as e:
             logger.Error(e)
     
-def quote_tags_create(conn, id_quote, id_tag):
+def quote_tag_create(conn, id_quote, id_tag):
     cursor = conn.cursor()
-    cursor.execute("SELECT id FROM quotes_tags WHERE quote_id=%s AND author_id=%s",
+    cursor.execute("SELECT id FROM quotes_tags WHERE quote_id=%s AND tag_id=%s",
                    (id_quote, id_tag))
     result = cursor.fetchone()
     exist = result[0] if result else None
     if exist is None:
         try:
-            cursor.execute("INSERT INTO quotes_tags VALUES (%s, %s)", (id_quote, id_tag))
+            cursor.execute("INSERT INTO quotes_tags(quote_id, tag_id) VALUES (%s, %s)",
+                           (id_quote, id_tag))
             conn.commit()
+            logger.info("Create quote_tag.")
         except mysql.connector.Error as e:
             logger.error(e)
     
