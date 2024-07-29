@@ -20,11 +20,9 @@ class QuotespiderSpider(scrapy.Spider):
             quote_item['tags'] = quote.css("div.tags a.tag::text").getall()
             author_url = quote.css(("div.quote span a::attr(href)")).get()
             if author_url not in self.authors:
-                logger.info(f"New author: {quote_item['author']}")
                 self.authors.append(author_url)
-                request = response.follow(author_url, self.parse_about, cb_kwargs=dict())
-                request.cb_kwargs["author"] = quote_item['author']
-                yield request
+                yield response.follow(author_url, self.parse_about, 
+                                      cb_kwargs={"author": quote_item['author']})
             yield quote_item
             
         next_page = response.css("li.next a::attr(href)").get()
