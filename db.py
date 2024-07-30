@@ -8,11 +8,14 @@ from quotescraper.items import AuthorItem, QuoteItem
 load_dotenv()
 
 class Connection:
-
+    ''' Clase Connection.
+    '''
     conn = None
 
     @classmethod
     def get_connection(cls):
+        ''' Realiza la conexión a la base de datos y la retorna.
+        '''
         if cls.conn is None:
             try:
                 logger.info("Try create database.")
@@ -28,6 +31,12 @@ class Connection:
         return cls.conn
 
 def create_tables(conn, database=os.environ['DB_DATABASE']):
+    ''' Función que crea las tablas siguientes:
+        - authors
+        - tags
+        - quotes
+        - quotes_tags
+    '''
     cursor = conn.cursor()
     # database = os.environ['DB_DATABASE']
     try:
@@ -39,7 +48,7 @@ def create_tables(conn, database=os.environ['DB_DATABASE']):
             CREATE TABLE IF NOT EXISTS `authors` (
                 `id` int PRIMARY KEY AUTO_INCREMENT,
                 `fullname` varchar(100),
-                `about` varchar(3000)
+                `about` varchar(5000)
             );
             """,
             """
@@ -73,12 +82,14 @@ def create_tables(conn, database=os.environ['DB_DATABASE']):
         logger.error(e)
 
 def author_get(conn, name):
+    ''' Función obtener author por nombre '''
     cursor = conn.cursor()
     cursor.execute("SELECT id FROM authors WHERE fullname=%s", (name,))
     result = cursor.fetchone()
     return result[0] if result else None
 
 def author_create(conn, item: AuthorItem):
+    ''' Función para crear un autor '''
     result = author_get(conn, item['author'])
     if result is None:
         try:
@@ -92,12 +103,14 @@ def author_create(conn, item: AuthorItem):
             logger.error(e)
 
 def tag_get(conn, tag: str):
+    ''' Función obtener tag por nombre '''
     cursor = conn.cursor()
     cursor.execute("SELECT id FROM tags WHERE name = %s", (tag,))
     result = cursor.fetchone()
     return result[0] if result else None
 
 def tag_create(conn, tag):
+    ''' Función para crear tag '''
     result = tag_get(conn, tag)
     if result is None:
         try:
@@ -109,12 +122,14 @@ def tag_create(conn, tag):
             logger.error(e)
 
 def quote_get(conn, quote):
+    ''' Función obtener quote por nombre '''
     cursor = conn.cursor()
     cursor.execute("SELECT id FROM quotes WHERE quote = %s", (quote,))
     result = cursor.fetchone()
     return result[0] if result else None
 
 def quote_create(conn, quote: QuoteItem):
+    ''' Función para crear quote '''
     id_author = author_get(conn, quote['author'])
     if id_author is None:
         return None
@@ -125,12 +140,14 @@ def quote_create(conn, quote: QuoteItem):
             cursor.execute("INSERT INTO quotes (quote, author_id) VALUES (%s, %s)", 
                            (quote['quote'], id_author))
             conn.commit()
-            logger.info("Create quote.")
+            logger.info(f"Create quote {quote['quote']}.")
             return cursor.lastrowid
         except mysql.connector.Error as e:
             logger.Error(e)
+    return None
     
 def quote_tag_create(conn, id_quote, id_tag):
+    ''' Función para crear quote_tag '''
     cursor = conn.cursor()
     cursor.execute("SELECT id FROM quotes_tags WHERE quote_id=%s AND tag_id=%s",
                    (id_quote, id_tag))
@@ -141,7 +158,6 @@ def quote_tag_create(conn, id_quote, id_tag):
             cursor.execute("INSERT INTO quotes_tags(quote_id, tag_id) VALUES (%s, %s)",
                            (id_quote, id_tag))
             conn.commit()
-            logger.info("Create quote_tag.")
         except mysql.connector.Error as e:
             logger.error(e)
     

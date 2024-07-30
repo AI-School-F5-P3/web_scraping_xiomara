@@ -5,6 +5,8 @@ from quotescraper.items import QuoteItem, AuthorItem
 
 
 class QuotespiderSpider(scrapy.Spider):
+    ''' Crear spider para las quotes.
+    '''
     name = "quotespider"
     allowed_domains = ["quotes.toscrape.com"]
     start_urls = ["https://quotes.toscrape.com"]
@@ -12,6 +14,12 @@ class QuotespiderSpider(scrapy.Spider):
     authors = []
 
     def parse(self, response):
+        ''' parse principal.
+
+            - Parsea las quotes.
+            - Redirección para parsear autores: self.parse_about
+            - Continua a la siguinte página.
+        '''
         quotes = response.css("div.quote")
         quote_item = QuoteItem()
         for quote in quotes:
@@ -31,6 +39,8 @@ class QuotespiderSpider(scrapy.Spider):
             yield response.follow(url_next, callback=self.parse)
 
     def parse_about(self, response, author):
+        ''' Parsear los AuthorItem.
+        '''
         author_item = AuthorItem()
         author_item['author'] = author
         author_item['about'] = response.css(".author-description::text").get()
